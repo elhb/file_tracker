@@ -59,7 +59,7 @@ class Directory():
           min_dups=0
           ):
           
-          if header: print 'Size\tFiles\tFolders\tDups\tDups%\tPath'
+          if header: print 'Size\tFiles\tFolders\tDups\tDups%\tPath\tDup locations'
           if levels == 0: return
           if nosize:
                b = 0
@@ -76,7 +76,7 @@ class Directory():
                rdups_percentage = round(100*float(rdups_count)/self.rfiles_count,2) if self.rfiles_count else 0.0
                if rdups_percentage < min_dups:pass
                else:
-                    print '{0}{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format( human_size, size_unit, self.rfiles_count, self.rdirs_count , rdups_count, rdups_percentage, offset_name(self.name,level) )
+                    print '{0}{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}'.format( human_size, size_unit, self.rfiles_count, self.rdirs_count , rdups_count, rdups_percentage, offset_name(self.name,level),'-' )
           if level == 0: level = self.name.count('/')
           for directory in self.dirs:
                directory.printtree(
@@ -93,7 +93,7 @@ class Directory():
                for media_file in self.files:
                     if nosize == False and media_file.size < min_size: pass
                     else:
-                         print '{0}{1}\t{2}\t{3}\t{4}\t{5}\t{6}'.format( media_file.human_size, media_file.size_unit, 1, 0 ,len(media_file.duplicates),'-', offset_name(media_file.fullpath,level+1) )
+                         print '{0}{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}'.format( media_file.human_size, media_file.size_unit, 1, 0 ,len(media_file.duplicates),'-', offset_name(media_file.fullpath,level+1), ' '.join(f.fullpath for f in media_file.duplicates) )
 
      @property
      def printdirs(self,):
