@@ -42,6 +42,13 @@ try:
      
      for directory in root.rdirs:
           print directory.find_duplicates()
+
+     root.printtree(includefiles=False)
+     sys.stderr.write('\n')
+
+     reference_directory.printtree(includefiles=False)
+     sys.stderr.write('\n')
+
                
 except KeyboardInterrupt:
      drop2interpreter()
