@@ -5,6 +5,7 @@ def offset_name(name,level):
      spacer = '/' if level != 0 else ''
      spacer2 = '`- ' if level != 0 else ''
      #return ''.join([ '|'+''.join([' ' for i in range(len(part))])    for part in _parts[1:max(0,level-1)] ]) + \
+     return name
      return ''.join([ '|'+''.join([' ' for i in range(2)])    for part in _parts[1:max(0,level-1)] ]) + \
      spacer2 + \
      spacer+ '/'.join(_parts[level:])
