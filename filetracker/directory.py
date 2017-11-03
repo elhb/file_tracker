@@ -21,10 +21,12 @@ class Directory():
                     Directory(os.path.join(root,directory), parent=self, verbose=self.verbose) for directory in dirs
                ]
           self.files = [
-                    MediaFile(os.path.join(root,file_name),verbose=self.verbose) \
-                    for file_name in files \
-                    if '.'+file_name.split('.')[-1].lower() in AUDIO_EXTENSIONS+VIDEO_EXTENSIONS+IMAGE_EXTENSIONS
+                    MediaFile(os.path.join(root,file_name),parent=self, verbose=self.verbose) \
+                    for file_name in files #\
+                    #if '.'+file_name.split('.')[-1].lower() in AUDIO_EXTENSIONS+VIDEO_EXTENSIONS+IMAGE_EXTENSIONS
                ]
+          self.duplicates = []
+          self.dup_checked = False
 
      def __str__(self,):
           return self.name
@@ -42,10 +44,30 @@ class Directory():
 
      @property
      def rfiles(self,):
+          returned = dict()
           for _dir in self.dirs:
-               for media_file in _dir.rfiles: yield media_file
+               for media_file in _dir.rfiles:
+                    if media_file not in returned:
+                         yield media_file
+                         returned[media_file]=True
           for media_file in self.files:
-               yield media_file
+                    if media_file not in returned:
+                         yield media_file
+                         returned[media_file]=True
+
+     @property
+     def rdirs(self,):
+          returned = dict()
+          for _dir in self.dirs:
+               for _grand_child_dir in _dir.dirs:
+                    if _grand_child_dir not in returned:
+                         yield _grand_child_dir
+                         returned[_grand_child_dir] = True
+          for _dir in self.dirs:
+               if _dir not in returned:
+                    yield _dir
+                    returned[_dir] = True
+
 
      def printtree(
           self,
@@ -111,3 +133,113 @@ class Directory():
                files_sorted_by_md5sums=f.add_to_duplication_tracker(files_sorted_by_md5sums)
           if self.verbose: sys.stderr.write('\n')
           return files_sorted_by_md5sums
+     
+     def isduplicate(self,directory):
+          
+          if compare_files_in_directories(self,directory) and compare_files_in_directories(directory,self):
+               pass#sys.stderr.write( 'INFO :: All files in directory {0} are dupliacted in dir {1} and vice versa.\n'.format(self,directory) )
+          else: return False
+          
+          if compare_subdirs_in_directories(self,directory) and compare_subdirs_in_directories(directory,self):
+               #sys.stderr.write( 'INFO :: All subdirs in directory {0} are dupliacted in dir {1} and vice versa.\n'.format(self,directory) )
+               return True
+          else: return False
+
+     def find_duplicates(self,):
+          
+          for directory in self.dirs:
+               if not directory.dup_checked: directory.find_duplicates()
+          
+          sys.stderr.write( 'INFO :: directory {} searching for potential duplicates.\n'.format(self.name) )
+          potential_duplicates = {}
+          for _file in self.files:
+               for duplicate in _file.duplicates:
+                    potential_duplicates[duplicate.parent_dir] = None
+          
+          sys.stderr.write( 'INFO :: Found {} potential duplicates validating.\n'.format(len(potential_duplicates)) )
+          for potential_duplicate in potential_duplicates.keys():
+               sys.stderr.write( 'INFO :: Comparing to potential duplicate {}.\n'.format(potential_duplicate.name) )
+
+               if self in potential_duplicate.duplicates and potential_duplicate in self.duplicates:
+                    sys.stderr.write( 'INFO :: Directories are duplicates.\n'.format(self.name,potential_duplicate.name) )
+                    continue
+
+               if self.isduplicate(potential_duplicate):
+                    self.duplicates.append(potential_duplicate)
+                    potential_duplicate.duplicates.append(self)
+                    sys.stderr.write( 'INFO :: Directories are duplicates.\n'.format(self.name,potential_duplicate.name) )
+               else: sys.stderr.write( 'INFO :: Directories are NOT duplicates.\n'.format(self.name,potential_duplicate.name) )
+
+               sys.stderr.write( '\n')
+          
+          self.dup_checked = True
+          
+def compare_files_in_directories(reference_dir,subject_dir,verbose=False):
+     if verbose:
+          sys.stderr.write('INFO :: Comparing files.\n')
+          sys.stderr.write('INFO :: referencedir={}\n'.format(reference_dir.name))
+          sys.stderr.write('INFO :: subjectdir={}\n'.format(subject_dir.name))
+     all_files_form_self_is_duplicated_in_other_dir = True
+
+     for _file1 in reference_dir.files:
+
+          _file1_duplicated_in_other_dir = False
+          for _file2 in subject_dir.files:
+               if _file1 in _file2.duplicates and _file2 in _file1.duplicates:
+                    _file1_duplicated_in_other_dir = True
+                    break
+          
+          if not _file1_duplicated_in_other_dir:
+               all_files_form_self_is_duplicated_in_other_dir = False
+               if verbose:sys.stderr.write('WARNING :: file {} in reference is NOT present in subject.\n'.format(_file1.filename) )
+          else:
+               if verbose:sys.stderr.write('INFO :: file {} in reference is also in subject {}.\n'.format(_file1.filename,_file2.filename) )
+     
+     if all_files_form_self_is_duplicated_in_other_dir:
+          if verbose:sys.stderr.write( 'INFO :: All files in reference are dupliacted in subject.\n')
+          return True
+     else:
+          if verbose:sys.stderr.write( 'WARNING :: Some files in reference are NOT dupliacted in subject.\n')
+          return False
+
+def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=True):
+
+     if verbose:
+          sys.stderr.write('INFO :: Comparing sub directories.\n')
+          sys.stderr.write('INFO :: referencedir={}\n'.format(reference_dir.name))
+          sys.stderr.write('INFO :: subjectdir={}\n'.format(subject_dir.name))
+
+     if len(reference_dir.dirs) == len(subject_dir.dirs):
+          if len(reference_dir.dirs) == 0:
+                    if verbose: sys.stderr.write( 'INFO :: All sub directories in reference are dupliacted in subject and vice versa (because there are none).\n' )
+                    return True
+          else:
+               for directory in reference_dir.dirs+subject_dir.dirs:
+                    if not directory.dup_checked:
+                         sys.stderr.write( 'INFO :: Need to check child of potential duplicate first ...\n' )
+                         directory.find_duplicates()
+
+               all_subdirs_form_self_is_duplicated_in_other_dir = True
+               for _subdir1 in reference_dir.rdirs:
+          
+                    _subdir1_duplicated_in_other_dir = False
+                    for _subdir2 in subject_dir.rdirs:
+                         if _subdir1 in _subdir2.duplicates and _subdir2 in _subdir1.duplicates:
+                              _subdir1_duplicated_in_other_dir = True
+                              break
+                    
+                    if not _subdir1_duplicated_in_other_dir:
+                         all_subdirs_form_self_is_duplicated_in_other_dir = False
+                         if verbose:sys.stderr.write('WARNING :: subdir {} in reference is not present in subject.\n'.format(_subdir1.name) )
+                    else:
+                         if verbose:sys.stderr.write('INFO :: subdir {} in reference is also in subject {}.\n'.format(_subdir1.name,_subdir2.name) )
+               
+               if all_files_form_self_is_duplicated_in_other_dir:
+                    if verbose:sys.stderr.write( 'INFO :: All subdirs in reference are dupliacted in subject.\n')
+                    return True
+               else:
+                    if verbose:sys.stderr.write( 'WARNING :: Some subdirs in reference are NOT dupliacted in subject.\n')
+                    return False
+     else:
+          if verbose: sys.stderr.write( 'WARNING :: The number of sub directories in refernce do NOT match the number in subject.\n')
+          return False

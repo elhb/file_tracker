@@ -15,25 +15,34 @@ try:
      path = '/home'
      sys.stderr.write('INFO :: Loading all directories and files recursively in path {}: \n'.format(path))
      root = Directory(path)
-     sys.stderr.write('\n')
-     root.printtree(min_size=1024**3)
+     sys.stderr.write('\n\n')
+     # root.printtree(min_size=100*1024**2)
      
      path2 = '/media'
      sys.stderr.write('INFO :: Loading all directories and files recursively in path {}: \n'.format(path))
-     root2 = Directory(path2)
-     sys.stderr.write('\n')
-     root2.printtree(min_size=1024**3)
+     reference_directory = Directory(path2)
+     sys.stderr.write('\n\n')
+     # reference_directory.printtree(min_size=100*1024**2)
      
      sys.stderr.write('INFO :: Adding path {} to the duplication tracker.\n'.format(path))
      root.verbose = True
      files_sorted_by_md5sums = root.add_to_dup_tracker(files_sorted_by_md5sums)
+     sys.stderr.write('\n')
      
      sys.stderr.write('INFO :: Adding path {} to the duplication tracker.\n'.format(path2))
-     root2.verbose = True
-     files_sorted_by_md5sums = root2.add_to_dup_tracker(files_sorted_by_md5sums)
+     reference_directory.verbose = True
+     files_sorted_by_md5sums = reference_directory.add_to_dup_tracker(files_sorted_by_md5sums)
+     sys.stderr.write('\n')
      
-     root.printtree(min_size=10*1024**2)
-     root2.printtree(min_size=10*1024**2)
+     root.printtree(includefiles=False)
+     sys.stderr.write('\n')
+
+     reference_directory.printtree(includefiles=False)
+     sys.stderr.write('\n')
+     
+     for directory in root.rdirs:
+          print directory.find_duplicates()
+               
 except KeyboardInterrupt:
      drop2interpreter()
 
