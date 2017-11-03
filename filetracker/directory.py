@@ -234,7 +234,7 @@ def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=True):
                     else:
                          if verbose:sys.stderr.write('INFO :: subdir {} in reference is also in subject {}.\n'.format(_subdir1.name,_subdir2.name) )
                
-               if all_files_form_self_is_duplicated_in_other_dir:
+               if all_subdirs_form_self_is_duplicated_in_other_dir:
                     if verbose:sys.stderr.write( 'INFO :: All subdirs in reference are dupliacted in subject.\n')
                     return True
                else:
