@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 from filetracker.constants import *
 from filetracker.config import *
@@ -12,17 +13,15 @@ def drop2interpreter():
      code.interact(local=dict(globals(), **locals()))
 
 try:
-     path = '/home'
+     path = sys.argv[1]
      sys.stderr.write('INFO :: Loading all directories and files recursively in path {}: \n'.format(path))
      root = Directory(path)
      sys.stderr.write('\n\n')
-     # root.printtree(min_size=100*1024**2)
      
-     path2 = '/media'
+     path2 = sys.argv[2]
      sys.stderr.write('INFO :: Loading all directories and files recursively in path {}: \n'.format(path))
      reference_directory = Directory(path2)
      sys.stderr.write('\n\n')
-     # reference_directory.printtree(min_size=100*1024**2)
      
      sys.stderr.write('INFO :: Adding path {} to the duplication tracker.\n'.format(path))
      root.verbose = True
@@ -40,18 +39,20 @@ try:
      reference_directory.printtree(includefiles=False)
      sys.stderr.write('\n')
      
-     for directory in root.rdirs:
-          print directory.find_duplicates()
-
-     root.printtree(includefiles=False)
+     root.find_duplicates()
      sys.stderr.write('\n')
 
-     reference_directory.printtree(includefiles=False)
+     root.printtree(includefiles=False,min_size=100*1024**2)
      sys.stderr.write('\n')
 
-               
+     reference_directory.printtree(includefiles=False,min_size=100*1024**2)
+     sys.stderr.write('\n')
+
+     sys.stderr.write('INFO :: Sleeping few a minutes before exiting.\n')
+     final_sleep = 600
+     for i in xrange(final_sleep):
+          sys.stderr.write('\t{}\tseconds to the end.\r'.format(final_sleep-i))
+          time.sleep(1)
+
 except KeyboardInterrupt:
      drop2interpreter()
-
-
-drop2interpreter()
