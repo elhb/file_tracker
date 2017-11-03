@@ -48,6 +48,10 @@ try:
      reference_directory.printtree(includefiles=False,min_size=100*1024**2)
      sys.stderr.write('\n')
 
+     with open('knownmd5s.tsv','w') as outfile:
+          for md5, files in files_sorted_by_md5sums.iteritems():
+               for media_file in files: outfile.write('{0}\t{1}\n'.format(md5, media_file.fullpath))
+
      sys.stderr.write('INFO :: Sleeping few a minutes before exiting.\n')
      final_sleep = 600
      for i in xrange(final_sleep):
@@ -55,4 +59,7 @@ try:
           time.sleep(1)
 
 except KeyboardInterrupt:
+     with open('knownmd5s.tsv','w') as outfile:
+          for md5, files in files_sorted_by_md5sums.iteritems():
+               for media_file in files: outfile.write('{0}\t{1}\n'.format(md5, media_file.fullpath))
      drop2interpreter()

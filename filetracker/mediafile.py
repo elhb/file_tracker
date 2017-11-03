@@ -31,7 +31,10 @@ class MediaFile():
     @property
     def md5_sum(self,):
         if self._md5: return self._md5
-        self._md5 = md5(self.fullpath)
+        try:
+            self._md5 = KNOWNMD5S[self.fullpath]
+        except KeyError:
+            self._md5 = md5(self.fullpath)
         return self._md5
 
     @property
@@ -56,4 +59,3 @@ class MediaFile():
     @property
     def size_unit(self,):
         return bytes2humanreadable(self.size)[1]
-
