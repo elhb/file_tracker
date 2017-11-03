@@ -5,14 +5,14 @@ from filetracker.misc_functions import *
 
 class MediaFile():
      
-    def __init__(self,file_name,verbose=False, duplication_tracking=False):
+    def __init__(self,file_name, parent=None,verbose=False, duplication_tracking=False):
         self.verbose = verbose
         self.fullpath = os.path.abspath(file_name)
         self.filename = os.path.basename(self.fullpath)
         self.extension = self.fullpath.split('.')[-1] if self.fullpath.split('.') else None
         self._size = None
         self._md5 = None
-        self.parent_dir = None
+        self.parent_dir = parent
         self.duplicates = []
         if duplication_tracking: self.add_to_duplication_tracker()
         if USE_SPINNER: _junk = SPINNER.next()
