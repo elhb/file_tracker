@@ -79,7 +79,8 @@ class Directory():
           min_size=0,
           min_files=0,
           min_dups=0,
-          skip_subs_of_dups=True
+          skip_subs_of_dups=True,
+          sugessted_actions = None
           ):
 
           if header: print 'Size\tFiles\tFolders\tDups\tDups%\tPath\tDup locations'
@@ -99,7 +100,14 @@ class Directory():
                rdups_percentage = round(100*float(rdups_count)/self.rfiles_count,2) if self.rfiles_count else 0.0
                if rdups_percentage < min_dups:pass
                else:
-                    print '{0}{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}'.format( human_size, size_unit, self.rfiles_count, self.rdirs_count , rdups_count, rdups_percentage, offset_name(self.name,level),' '.join(d.name for d in self.duplicates) )
+                    out_str = '{0}{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}'.format( human_size, size_unit, self.rfiles_count, self.rdirs_count , rdups_count, rdups_percentage, offset_name(self.name,level),' '.join(d.name for d in self.duplicates) )
+                    print out_str
+                    if self.duplicates:
+                         if not sugessted_actions or self not in sugessted_actions:
+                              with open('actions.txt','a') as outfile: outfile.write('# {}\nrm -v {}\n'.format(out_str,repr(self.name)))
+                         if not sugessted_actions: sugessted_actions = dict()
+                         sugessted_actions[self] = True
+                         for duplicate in self.duplicates: sugessted_actions[duplicate] = True
           if level == 0: level = self.name.count('/')
           
           if skip_subs_of_dups and self.duplicates: return
@@ -131,7 +139,7 @@ class Directory():
 
      def add_to_dup_tracker(self, files_sorted_by_md5sums):
           if self.verbose:
-               _spinner = Spinner()
+               _spinner = Spinner(update_intervall=1)
           for f in self.rfiles:
                if self.verbose: _spinner.next()
                files_sorted_by_md5sums=f.add_to_duplication_tracker(files_sorted_by_md5sums)
