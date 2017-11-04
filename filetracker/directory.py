@@ -18,11 +18,11 @@ class Directory():
           except StopIteration: root, dirs, files = path,[],[]
           self.parent_dir = parent if parent else None
           self.dirs = [
-                    Directory(os.path.join(root,directory), parent=self, verbose=self.verbose) for directory in dirs
+                    Directory(os.path.join(root,directory), parent=self, verbose=self.verbose) for directory in dirs if not os.path.islink(os.path.join(root,directory))
                ]
           self.files = [
                     MediaFile(os.path.join(root,file_name),parent=self, verbose=self.verbose) \
-                    for file_name in files #\
+                    for file_name in files if not os.path.islink(os.path.join(root,file_name))
                     #if '.'+file_name.split('.')[-1].lower() in AUDIO_EXTENSIONS+VIDEO_EXTENSIONS+IMAGE_EXTENSIONS
                ]
           self.duplicates = []
@@ -78,7 +78,8 @@ class Directory():
           includefiles=True,
           min_size=0,
           min_files=0,
-          min_dups=0
+          min_dups=0,
+          skip_subs_of_dups=True
           ):
 
           if header: print 'Size\tFiles\tFolders\tDups\tDups%\tPath\tDup locations'
@@ -100,6 +101,9 @@ class Directory():
                else:
                     print '{0}{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}'.format( human_size, size_unit, self.rfiles_count, self.rdirs_count , rdups_count, rdups_percentage, offset_name(self.name,level),' '.join(d.name for d in self.duplicates) )
           if level == 0: level = self.name.count('/')
+          
+          if skip_subs_of_dups and self.duplicates: return
+          
           for directory in self.dirs:
                directory.printtree(
                     nosize=nosize,
@@ -182,6 +186,8 @@ def compare_files_in_directories(reference_dir,subject_dir,verbose=False):
           sys.stderr.write('INFO ::         subjectdir={}\n'.format(subject_dir.name))
      all_files_form_self_is_duplicated_in_other_dir = True
 
+     if len(reference_dir.files) != len(subject_dir.files): return False
+     
      for _file1 in reference_dir.files:
 
           _file1_duplicated_in_other_dir = False
@@ -203,7 +209,7 @@ def compare_files_in_directories(reference_dir,subject_dir,verbose=False):
           if verbose:sys.stderr.write( 'WARNING ::         Some files in reference are NOT dupliacted in subject.\n')
           return False
 
-def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=True):
+def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=False):
 
      if verbose:
           sys.stderr.write('INFO ::         Comparing sub directories.\n')
@@ -221,10 +227,10 @@ def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=True):
                          directory.find_duplicates()
 
                all_subdirs_form_self_is_duplicated_in_other_dir = True
-               for _subdir1 in reference_dir.rdirs:
+               for _subdir1 in reference_dir.dirs:
 
                     _subdir1_duplicated_in_other_dir = False
-                    for _subdir2 in subject_dir.rdirs:
+                    for _subdir2 in subject_dir.dirs:
                          if _subdir1 in _subdir2.duplicates and _subdir2 in _subdir1.duplicates:
                               _subdir1_duplicated_in_other_dir = True
                               break

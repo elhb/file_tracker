@@ -35,6 +35,7 @@ class MediaFile():
             self._md5 = KNOWNMD5S[self.fullpath]
         except KeyError:
             self._md5 = md5(self.fullpath)
+            with open('knownmd5s.tsv','a') as outfile: outfile.write('{0}\t{1}\t{2}\t{3}\n'.format(self._md5, self.fullpath,os.path.getmtime(self.fullpath),'M'))
         return self._md5
 
     @property
