@@ -109,9 +109,9 @@ class Directory():
                          sugessted_actions[self] = True
                          for duplicate in self.duplicates: sugessted_actions[duplicate] = True
           if level == 0: level = self.name.count('/')
-          
+
           if skip_subs_of_dups and self.duplicates: return
-          
+
           for directory in self.dirs:
                directory.printtree(
                     nosize=nosize,
@@ -198,7 +198,7 @@ def compare_files_in_directories(reference_dir,subject_dir,verbose=False):
      all_files_form_self_is_duplicated_in_other_dir = True
 
      if len(reference_dir.files) != len(subject_dir.files): return False
-     
+
      for _file1 in reference_dir.files:
 
           _file1_duplicated_in_other_dir = False
