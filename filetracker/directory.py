@@ -169,7 +169,8 @@ class Directory():
           potential_duplicates = {}
           for _file in self.files:
                for duplicate in _file.duplicates:
-                    potential_duplicates[duplicate.parent_dir] = None
+                    if duplicate.parent_dir.name != self.name:
+                         potential_duplicates[duplicate.parent_dir] = None
 
           sys.stderr.write( 'INFO ::     Found {} potential duplicates validating.\n'.format(len(potential_duplicates)) )
           for potential_duplicate in potential_duplicates.keys():
