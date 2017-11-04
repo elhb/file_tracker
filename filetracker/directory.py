@@ -104,7 +104,7 @@ class Directory():
                     print out_str
                     if self.duplicates:
                          if not sugessted_actions or self not in sugessted_actions:
-                              with open('actions.txt','a') as outfile: outfile.write('# {}\nrm -vr {}\n'.format(out_str,repr(self.name)))
+                              with open('actions.txt','a') as outfile: outfile.write('# {}\nrm -vr "{}"\n'.format(out_str,self.name))
                          if not sugessted_actions: sugessted_actions = dict()
                          sugessted_actions[self] = True
                          for duplicate in self.duplicates: sugessted_actions[duplicate] = True
