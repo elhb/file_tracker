@@ -222,7 +222,8 @@ class Directory():
           for potential_duplicate in potential_duplicates.keys():
                _tmp_counter += 1
                sys.stderr.write( 'INFO :: {}--Comparing to potential duplicate {}. {}.\n'.format(recurion_depth_offset,_tmp_counter,potential_duplicate.name) )
-               if potential_duplicate in self.rdirs or self in potential_duplicate.rdirs:
+               #if potential_duplicate in self.rdirs or self in potential_duplicate.rdirs:
+               if are_related(self,potential_duplicate):
                     sys.stderr.write( 'INFO :: {}----Directories are NOT duplicates (child of parent).\n'.format(recurion_depth_offset) )
                     continue
 
@@ -242,7 +243,13 @@ class Directory():
           self.dup_checked = True
           return
 
-def compare_files_in_directories(reference_dir,subject_dir,verbose=False,recurion_depth=0):
+def are_related(dir_1,dir_2):
+     if dir_1.name.startswith(dir_2.name) or dir_2.name.startswith(dir_1.name): return True
+     else: return False
+
+def compare_files_in_directories(reference_dir,subject_dir,verbose=True,recurion_depth=0):
+     
+     recurion_depth_offset=''.join([' ' for i in xrange(4*recurion_depth)])+str(recurion_depth)+'-----'
      if verbose:
           sys.stderr.write('INFO ::         Comparing files.\n')
           sys.stderr.write('INFO ::         referencedir={}\n'.format(reference_dir.name))
@@ -286,8 +293,9 @@ def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=False,recur
                     return True
           else:
                # this is probably a more efficient child parent check than in Directory.find_duplicates should change it and make one function for this type of check
-               if subject_dir.name.startswith(reference_dir.name) or reference_dir.name.startswith(subject_dir.name):
-                    sys.stderr.write( 'INFO :: {}xxxxDirectories are NOT duplicates (child of parent).\n'.format(recurion_depth_offset) )
+               #if subject_dir.name.startswith(reference_dir.name) or reference_dir.name.startswith(subject_dir.name):
+               if are_related(subject_dir,reference_dir):
+                    sys.stderr.write( 'INFO :: {}Directories are NOT duplicates (child of parent).\n'.format(recurion_depth_offset) )
                     return False
 
                for directory in reference_dir.dirs+subject_dir.dirs:
