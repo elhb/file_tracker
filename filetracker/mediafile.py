@@ -17,7 +17,8 @@ class MediaFile():
         if duplication_tracking: self.add_to_duplication_tracker()
         if USE_SPINNER: _junk = SPINNER.next()
 
-    def add_to_duplication_tracker(self,files_sorted_by_md5sums):
+    def add_to_duplication_tracker(self,files_sorted_by_md5sums, _spinner=None):
+        if not self.md5_sum: return files_sorted_by_md5sums # will not be added to tracker if not md5 sum is available
         if self.md5_sum in files_sorted_by_md5sums:
             if self not in files_sorted_by_md5sums[self.md5_sum]:
                 for media_file in files_sorted_by_md5sums[self.md5_sum]:
@@ -26,6 +27,7 @@ class MediaFile():
                 files_sorted_by_md5sums[self.md5_sum].append( self )
         else:
             files_sorted_by_md5sums[self.md5_sum] = [ self ]
+        if _spinner: _spinner.next()
         return files_sorted_by_md5sums
 
     @property
