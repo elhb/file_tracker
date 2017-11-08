@@ -41,15 +41,15 @@ try:
           files_sorted_by_md5sums = reference_directory.add_to_dup_tracker(files_sorted_by_md5sums)
           sys.stderr.write('\n')
 
-     root.find_duplicates()
+     root.find_duplicates(files_sorted_by_md5sums=files_sorted_by_md5sums)
      sys.stderr.write('\n')
 
      # root.printtree(includefiles=False,min_size=100*1024**2)
-     root.printtree(includefiles=False)
+     root.printtree()
      sys.stderr.write('\n')
 
      sys.stderr.write('INFO :: Sleeping few a minutes before exiting.\n')
-     final_sleep = 600
+     final_sleep = 5
      for i in xrange(final_sleep):
           sys.stderr.write('\t{}\tseconds to the end.\r'.format(final_sleep-i))
           time.sleep(1)

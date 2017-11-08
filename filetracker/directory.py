@@ -21,6 +21,7 @@ class Directory():
           for directory in dirs:
                
                # skip empty dirs
+               # should maybe make this recursive so that if there are no files around skip the full branch
                try: _tmp_list1,_tmplist2 = os.walk(os.path.join(root,directory),followlinks=followlinks).next()[1:]
                except StopIteration: _tmp_list1,_tmplist2 = [],[]
                _empty = not sum([len(_tmp_list1),len(_tmplist2)])
@@ -169,49 +170,73 @@ class Directory():
           
           return files_sorted_by_md5sums
 
-     def isduplicate(self,directory):
+     def isduplicate(self,directory,recurion_depth=0,files_sorted_by_md5sums={}):
 
-          if compare_files_in_directories(self,directory) and compare_files_in_directories(directory,self):
+          if compare_files_in_directories(self,directory,recurion_depth=recurion_depth) and compare_files_in_directories(directory,self,recurion_depth=recurion_depth):
                pass#sys.stderr.write( 'INFO :: All files in directory {0} are dupliacted in dir {1} and vice versa.\n'.format(self,directory) )
           else: return False
 
-          if compare_subdirs_in_directories(self,directory) and compare_subdirs_in_directories(directory,self):
+          if compare_subdirs_in_directories(self,directory,recurion_depth=recurion_depth,files_sorted_by_md5sums=files_sorted_by_md5sums) and compare_subdirs_in_directories(directory,self,recurion_depth=recurion_depth,files_sorted_by_md5sums=files_sorted_by_md5sums):
                #sys.stderr.write( 'INFO :: All subdirs in directory {0} are dupliacted in dir {1} and vice versa.\n'.format(self,directory) )
                return True
           else: return False
 
-     def find_duplicates(self,):
+     def find_duplicates(self,recurion_depth=0,files_sorted_by_md5sums={}):
 
-          sys.stderr.write( 'INFO :: Directory {} searching for potential duplicates.\n'.format(self.name) )
+          recurion_depth_offset=''.join([' ' for i in xrange(4*recurion_depth)])+str(recurion_depth)+'-'
+          sys.stderr.write( 'INFO :: {}Directory {} Cheking children.\n'.format(recurion_depth_offset,self.name) )
           for directory in self.dirs:
-               sys.stderr.write( 'INFO ::         Need to check child of potential duplicate first ...\n' )
-               if not directory.dup_checked: directory.find_duplicates()
+               if not directory.dup_checked:
+                    sys.stderr.write( 'INFO :: {}Need to check child of potential duplicate first ... going to child\n'.format(recurion_depth_offset))
+                    directory.find_duplicates(recurion_depth=recurion_depth+1,files_sorted_by_md5sums=files_sorted_by_md5sums)
+          sys.stderr.write( 'INFO :: {}Directory {} all children checked moving on with self.\n'.format(recurion_depth_offset,self.name) )
 
+          sys.stderr.write( 'INFO :: {}Directory {} searching for potential duplicates.\n'.format(recurion_depth_offset,self.name) )
           potential_duplicates = {}
           for _file in self.files:
                for duplicate in _file.duplicates:
                     if duplicate.parent_dir.name != self.name:
                          potential_duplicates[duplicate.parent_dir] = None
+          # NEED FIX #################################################################################
+          # CANNOT FIND POTENTIAL DUPLICATE OF A FOLDER WITH ONLY SUBDIRS NO FILES.                  #
+          if not self.files:                                                                         #
+               key='{}__{}'.format(self.get_size(),len(list(self.rfiles))+len(list(self.rdirs)) )
+               try:                                                                                  #
+                    _tmp = files_sorted_by_md5sums['NOFILES'][key]                       #
+               except KeyError:                                                                      #
+                    sys.stderr.write('WARNING :: {} dir size not in NOFILES ({}) the key {} is not in dict.\n'.format(recurion_depth_offset,self.name,key))
+                    _tmp = []
+               for potential_duplicate in _tmp:                                                      #
+                    if potential_duplicate.name != self.name:                                        #
+                         potential_duplicates[potential_duplicate] = None                            #
+          ############################################################################################
 
-          sys.stderr.write( 'INFO ::     Found {} potential duplicates validating.\n'.format(len(potential_duplicates)) )
+          sys.stderr.write( 'INFO :: {}Found {} potential duplicates validating.\n'.format(recurion_depth_offset,len(potential_duplicates)) )
+          _tmp_counter = 0
           for potential_duplicate in potential_duplicates.keys():
-               sys.stderr.write( 'INFO ::     Comparing to potential duplicate {}.\n'.format(potential_duplicate.name) )
-
-               if self in potential_duplicate.duplicates and potential_duplicate in self.duplicates:
-                    sys.stderr.write( 'INFO ::         Directories are duplicates.\n'.format(self.name,potential_duplicate.name) )
+               _tmp_counter += 1
+               sys.stderr.write( 'INFO :: {}--Comparing to potential duplicate {}. {}.\n'.format(recurion_depth_offset,_tmp_counter,potential_duplicate.name) )
+               if potential_duplicate in self.rdirs:
+                    sys.stderr.write( 'INFO :: {}----Directories are NOT duplicates (child of parent).\n'.format(recurion_depth_offset) )
                     continue
 
-               if self.isduplicate(potential_duplicate):
+               if self in potential_duplicate.duplicates and potential_duplicate in self.duplicates:
+                    sys.stderr.write( 'INFO :: {}----Directories are duplicates (compared earlier).\n'.format(recurion_depth_offset) )
+                    continue
+
+               if self.isduplicate(potential_duplicate,recurion_depth=recurion_depth,files_sorted_by_md5sums=files_sorted_by_md5sums):
                     self.duplicates.append(potential_duplicate)
                     potential_duplicate.duplicates.append(self)
-                    sys.stderr.write( 'INFO ::         Directories are duplicates.\n'.format(self.name,potential_duplicate.name) )
-               else: sys.stderr.write( 'INFO ::         Directories are NOT duplicates.\n'.format(self.name,potential_duplicate.name) )
+                    sys.stderr.write(  'INFO :: {}----Directories are duplicates.\n'.format(recurion_depth_offset) )
+               else: sys.stderr.write( 'INFO :: {}----Directories are NOT duplicates.\n'.format(recurion_depth_offset) )
 
 #          sys.stderr.write( '\n')
 
+          sys.stderr.write( 'INFO :: {}Directory {} dup check complete.\n'.format(recurion_depth_offset,self.name) )
           self.dup_checked = True
+          return
 
-def compare_files_in_directories(reference_dir,subject_dir,verbose=False):
+def compare_files_in_directories(reference_dir,subject_dir,verbose=False,recurion_depth=0):
      if verbose:
           sys.stderr.write('INFO ::         Comparing files.\n')
           sys.stderr.write('INFO ::         referencedir={}\n'.format(reference_dir.name))
@@ -241,7 +266,7 @@ def compare_files_in_directories(reference_dir,subject_dir,verbose=False):
           if verbose:sys.stderr.write( 'WARNING ::         Some files in reference are NOT dupliacted in subject.\n')
           return False
 
-def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=False):
+def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=False,recurion_depth=0,files_sorted_by_md5sums={}):
 
      if verbose:
           sys.stderr.write('INFO ::         Comparing sub directories.\n')
@@ -254,9 +279,12 @@ def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=False):
                     return True
           else:
                for directory in reference_dir.dirs+subject_dir.dirs:
+                    if directory in [reference_dir, subject_dir]:
+                         sys.stderr.write( 'WARNING :: one dir in comparison is a child of a dir in the comparison.\n' )
+                         continue
                     if not directory.dup_checked:
                          sys.stderr.write( 'INFO ::         Need to check child of potential duplicate first ...\n' )
-                         directory.find_duplicates()
+                         directory.find_duplicates(recurion_depth=recurion_depth+1,files_sorted_by_md5sums=files_sorted_by_md5sums)
 
                all_subdirs_form_self_is_duplicated_in_other_dir = True
                for _subdir1 in reference_dir.dirs:
