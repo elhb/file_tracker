@@ -22,16 +22,21 @@ class Directory():
           except StopIteration: root, dirs, files = path,[],[]
           self.parent_dir = parent if parent else None
           self.dirs = []
+
           for directory in dirs:
-               
+               directory_path =  os.path.join(root,directory)
                # skip empty dirs branches
                _empty = True
-               for info in os.walk(os.path.join(root,directory)):
-                    if len(info[-1]): _empty = False
-                    break
-               
-               if not os.path.islink(os.path.join(root,directory)) and not _empty:
-                    self.dirs.append( Directory(os.path.join(root,directory), parent=self, verbose=self.verbose) )
+               for info in os.walk(directory_path):
+                    if len(info[-1]):
+                         _empty = False
+                         break
+               if os.path.islink(directory_path):
+                    if self.verbose: sys.stderr.write( 'INFO :: Skipping  Directory for {0} (link).\n'.format(directory_path) )
+               elif _empty:
+                    if self.verbose: sys.stderr.write( 'INFO :: Skipping  Directory for {0} (empty branch).\n'.format(directory_path) )
+               else: self.dirs.append( Directory(directory_path, parent=self, verbose=self.verbose) )
+
           self.files = [
                     MediaFile(os.path.join(root,file_name),parent=self, verbose=self.verbose) \
                     for file_name in files if not os.path.islink(os.path.join(root,file_name))
