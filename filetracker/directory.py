@@ -222,7 +222,7 @@ class Directory():
           for potential_duplicate in potential_duplicates.keys():
                _tmp_counter += 1
                sys.stderr.write( 'INFO :: {}--Comparing to potential duplicate {}. {}.\n'.format(recurion_depth_offset,_tmp_counter,potential_duplicate.name) )
-               if potential_duplicate in self.rdirs:
+               if potential_duplicate in self.rdirs or self in potential_duplicate.rdirs:
                     sys.stderr.write( 'INFO :: {}----Directories are NOT duplicates (child of parent).\n'.format(recurion_depth_offset) )
                     continue
 
@@ -274,6 +274,7 @@ def compare_files_in_directories(reference_dir,subject_dir,verbose=False,recurio
 
 def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=False,recurion_depth=0,files_sorted_by_md5sums={}):
 
+     recurion_depth_offset=''.join([' ' for i in xrange(4*recurion_depth)])+str(recurion_depth)+'-'
      if verbose:
           sys.stderr.write('INFO ::         Comparing sub directories.\n')
           sys.stderr.write('INFO ::         referencedir={}\n'.format(reference_dir.name))
@@ -284,6 +285,11 @@ def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=False,recur
                     if verbose: sys.stderr.write( 'INFO ::         All sub directories in reference are dupliacted in subject and vice versa (because there are none).\n' )
                     return True
           else:
+               # this is probably a more efficient child parent check than in Directory.find_duplicates should change it and make one function for this type of check
+               if subject_dir.name.startswith(reference_dir.name) or reference_dir.name.startswith(subject_dir.name):
+                    sys.stderr.write( 'INFO :: {}xxxxDirectories are NOT duplicates (child of parent).\n'.format(recurion_depth_offset) )
+                    return False
+
                for directory in reference_dir.dirs+subject_dir.dirs:
                     if directory in [reference_dir, subject_dir]:
                          sys.stderr.write( 'WARNING :: one dir in comparison is a child of a dir in the comparison.\n' )
