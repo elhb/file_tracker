@@ -36,7 +36,7 @@ class MediaFile():
         try:
             self._md5 = KNOWNMD5S[self.fullpath]
         except KeyError:
-            sys.stderr.write('WARNING :: {}\n'.format(self.fullpath))
+            sys.stderr.write('WARNING :: {} is not known atempting to fetch md5 sum.\n'.format(self.fullpath))
             self._md5 = md5(self.fullpath)
             if self._md5:
                 with open('knownmd5s.tsv','a') as outfile: outfile.write('{0}\t{1}\t{2}\t{3}\n'.format(self._md5, self.fullpath,os.path.getmtime(self.fullpath),'M'))
