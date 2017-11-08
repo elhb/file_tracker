@@ -146,13 +146,27 @@ class Directory():
      def printfiles(self,):
           for i in range(len(self.files)): print '{0}. {1}'.format(i,self.files[i])
 
-     def add_to_dup_tracker(self, files_sorted_by_md5sums):
-          if self.verbose:
-               _spinner = Spinner(update_intervall=1)
-          for f in self.rfiles:
-               if self.verbose: _spinner.next()
-               files_sorted_by_md5sums=f.add_to_duplication_tracker(files_sorted_by_md5sums)
+     def add_to_dup_tracker(self, files_sorted_by_md5sums, _spinner=None):
+          if self.verbose and not _spinner: _spinner = Spinner(update_intervall=1)
+          
+          for f in self.files:
+               #if self.verbose: _spinner.next()
+               files_sorted_by_md5sums=f.add_to_duplication_tracker(files_sorted_by_md5sums, _spinner=_spinner)
           if self.verbose: sys.stderr.write('\n')
+          
+          if not self.files:
+               key='{}__{}'.format(self.get_size(),len(list(self.rfiles))+len(list(self.rdirs)) )
+               try:            files_sorted_by_md5sums['NOFILES'][key].append(self)
+               except KeyError:files_sorted_by_md5sums['NOFILES'][key] = [self]
+               if self.verbose:_spinner.next()
+          for _dir in self.dirs:
+               files_sorted_by_md5sums = _dir.add_to_dup_tracker(files_sorted_by_md5sums,_spinner=_spinner)
+               # if not _dir.files:
+               #      key='{}__{}'.format(_dir.get_size(),len(list(_dir.rfiles))+len(list(_dir.rdirs)) )
+               #      try:            files_sorted_by_md5sums['NOFILES'][key].append(_dir)
+               #      except KeyError:files_sorted_by_md5sums['NOFILES'][key] = [_dir]
+               #      if self.verbose:_spinner.next()
+          
           return files_sorted_by_md5sums
 
      def isduplicate(self,directory):

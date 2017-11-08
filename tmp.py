@@ -6,7 +6,7 @@ from filetracker.constants import *
 from filetracker.config import *
 from filetracker.directory import Directory
 
-files_sorted_by_md5sums = dict()
+files_sorted_by_md5sums = {'NOFILES':{}}
 
 def drop2interpreter():
      sys.stderr.write('INFO :: KeyboardInterrupt, dropping to interpreter ...\n')
