@@ -6,7 +6,7 @@ USE_SPINNER = True
 SPINNER = Spinner(mem_intervall=1000)
 
 sys.stderr.write('INFO :: Loading precalculated md5 sums from disk.\n')
-_s = Spinner(update_intervall=1)
+_s = Spinner(update_intervall=1000)
 KNOWNMD5S = dict()
 if os.path.isfile('knownmd5s.tsv'):
     with open('knownmd5s.tsv') as infile:
