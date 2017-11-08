@@ -177,7 +177,7 @@ class Directory():
 
      def isduplicate(self,directory,recurion_depth=0,files_sorted_by_md5sums={}):
 
-          if compare_files_in_directories(self,directory,recurion_depth=recurion_depth) and compare_files_in_directories(directory,self,recurion_depth=recurion_depth):
+          if compare_files_in_directories(self,directory,recurion_depth=recurion_depth):
                pass#sys.stderr.write( 'INFO :: All files in directory {0} are dupliacted in dir {1} and vice versa.\n'.format(self,directory) )
           else: return False
 
@@ -253,31 +253,45 @@ def compare_files_in_directories(reference_dir,subject_dir,verbose=True,recurion
           sys.stderr.write('INFO :: {}Comparing files.\n'.format(recurion_depth_offset))
           sys.stderr.write('INFO :: {}--Referencedir={}\n'.format(recurion_depth_offset,reference_dir.name))
           sys.stderr.write('INFO :: {}--Subjectdir={}\n'.format(recurion_depth_offset,subject_dir.name))
-     all_files_form_self_is_duplicated_in_other_dir = True
 
      if len(reference_dir.files) != len(subject_dir.files):
           if verbose:sys.stderr.write( 'INFO :: {}--The number of files in the dirs do not match.\n'.format(recurion_depth_offset))
           return False
 
+     subject_dir_file_duplicates = {}
+     for _file in subject_dir.files:
+          for file_duplicate in _file.duplicates:
+               subject_dir_file_duplicates[file_duplicate]=None
+     all_files_form_refdir_is_duplicated_in_subjdir = True
      reference_file_counter = 0
      for refdir_file in reference_dir.files:
           reference_file_counter += 1
-
-          refdir_file_duplicated_in_subject_dir = False
-          subject_file_counter = 0
-          for subjdir_file in subject_dir.files:
-               subject_file_counter += 1
-               if refdir_file in subjdir_file.duplicates and subjdir_file in refdir_file.duplicates:
-                    refdir_file_duplicated_in_subject_dir = True
-                    break
-
-          if not refdir_file_duplicated_in_subject_dir:
-               all_files_form_self_is_duplicated_in_other_dir = False
+          if refdir_file not in subject_dir_file_duplicates:
                if verbose:sys.stderr.write('INFO :: {}--File {} in reference is NOT present in subject.\n'.format(recurion_depth_offset,refdir_file.filename) )
-          elif verbose:sys.stderr.write('INFO :: {}--File {} in reference is also in subject {}.\n'.format(recurion_depth_offset,refdir_file.filename,subjdir_file.filename) )
+               all_files_form_refdir_is_duplicated_in_subjdir = False
+               if verbose:sys.stderr.write( 'INFO :: {}--Some files in reference are NOT dupliacted in subject.\n'.format(recurion_depth_offset))
+               return False
+               break
+          elif verbose:sys.stderr.write('INFO :: {}--File {} in reference is also in subject.\n'.format(recurion_depth_offset,refdir_file.filename) )
 
-     if all_files_form_self_is_duplicated_in_other_dir:
-          if verbose:sys.stderr.write( 'INFO :: {}--All files in reference are dupliacted in subject.\n'.format(recurion_depth_offset))
+     reference_dir_file_duplicates = {}
+     for _file in reference_dir.files:
+          for file_duplicate in _file.duplicates:
+               reference_dir_file_duplicates[file_duplicate]=None
+     all_files_form_subjdir_is_duplicated_in_refdir = True
+     subject_file_counter = 0
+     for subjdir_file in subject_dir.files:
+          subject_file_counter += 1
+          if subjdir_file not in reference_dir_file_duplicates:
+               if verbose:sys.stderr.write('INFO :: {}--File {} in subjet is NOT present in reference.\n'.format(recurion_depth_offset,subjdir_file.filename) )
+               all_files_form_subjdir_is_duplicated_in_refdir = False
+               if verbose:sys.stderr.write( 'INFO :: {}--Some files in subject are NOT dupliacted in reference.\n'.format(recurion_depth_offset))
+               return False
+               break
+          elif verbose:sys.stderr.write('INFO :: {}--File {} in subject is also in reference.\n'.format(recurion_depth_offset,subjdir_file.filename) )
+
+     if all_files_form_refdir_is_duplicated_in_subjdir and all_files_form_subjdir_is_duplicated_in_refdir:
+          if verbose:sys.stderr.write( 'INFO :: {}--All files in reference are dupliacted in subject and vice versa.\n'.format(recurion_depth_offset))
           return True
      else:
           if verbose:sys.stderr.write( 'INFO :: {}--Some files in reference are NOT dupliacted in subject.\n'.format(recurion_depth_offset))
