@@ -1,10 +1,15 @@
+#! /usr/bin/env python
+
 import os
 import sys
 import time
+import psutil
 
 from filetracker.constants import *
 from filetracker.config import *
 from filetracker.directory import Directory
+
+sys.stderr.write('INFO :: current system memory usage {}%.\n'.format(psutil.virtual_memory().percent))
 
 files_sorted_by_md5sums = {'NOFILES':{}}
 
@@ -21,6 +26,7 @@ try:
           sys.stderr.write('\n\n')
      except IndexError:
           root = None
+     sys.stderr.write('INFO :: current system memory usage {}%.\n'.format(psutil.virtual_memory().percent))
 
      try:
           path2 = sys.argv[2]
@@ -29,6 +35,7 @@ try:
           sys.stderr.write('\n\n')
      except IndexError:
           reference_directory = None
+     sys.stderr.write('INFO :: current system memory usage {}%.\n'.format(psutil.virtual_memory().percent))
 
      sys.stderr.write('INFO :: Adding path {} to the duplication tracker.\n'.format(path))
      root.verbose = True
@@ -40,6 +47,7 @@ try:
           reference_directory.verbose = True
           files_sorted_by_md5sums = reference_directory.add_to_dup_tracker(files_sorted_by_md5sums)
           sys.stderr.write('\n')
+     sys.stderr.write('INFO :: current system memory usage {}%.\n'.format(psutil.virtual_memory().percent))
 
      root.find_duplicates(files_sorted_by_md5sums=files_sorted_by_md5sums)
      sys.stderr.write('\n')
