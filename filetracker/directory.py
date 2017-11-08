@@ -17,9 +17,16 @@ class Directory():
           try: root, dirs, files = os.walk(path,followlinks=followlinks).next()
           except StopIteration: root, dirs, files = path,[],[]
           self.parent_dir = parent if parent else None
-          self.dirs = [
-                    Directory(os.path.join(root,directory), parent=self, verbose=self.verbose) for directory in dirs if not os.path.islink(os.path.join(root,directory))
-               ]
+          self.dirs = []
+          for directory in dirs:
+               
+               # skip empty dirs
+               try: _tmp_list1,_tmplist2 = os.walk(os.path.join(root,directory),followlinks=followlinks).next()[1:]
+               except StopIteration: _tmp_list1,_tmplist2 = [],[]
+               _empty = not sum([len(_tmp_list1),len(_tmplist2)])
+               
+               if not os.path.islink(os.path.join(root,directory)) or not _empty:
+                    self.dirs.append( Directory(os.path.join(root,directory), parent=self, verbose=self.verbose) )
           self.files = [
                     MediaFile(os.path.join(root,file_name),parent=self, verbose=self.verbose) \
                     for file_name in files if not os.path.islink(os.path.join(root,file_name))
