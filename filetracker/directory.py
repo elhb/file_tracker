@@ -24,13 +24,11 @@ class Directory():
           self.dirs = []
           for directory in dirs:
                
-               # skip empty dirs
-               # should maybe make this recursive so that if there are no files around skip the full branch
-               _tmp = sum([len(info[-1]) for info in os.walk(os.path.join(root,directory))]) # gets the recursive file count
-               #try: _tmp_list1,_tmplist2 = os.walk(os.path.join(root,directory),followlinks=followlinks).next()[1:]
-               #except StopIteration: _tmp_list1,_tmplist2 = [],[]
-               #_empty = not sum([len(_tmp_list1),len(_tmplist2)])
-               _empty = not _tmp
+               # skip empty dirs branches
+               _empty = True
+               for info in os.walk(os.path.join(root,directory)):
+                    if len(info[-1]): _empty = False
+                    break
                
                if not os.path.islink(os.path.join(root,directory)) and not _empty:
                     self.dirs.append( Directory(os.path.join(root,directory), parent=self, verbose=self.verbose) )
