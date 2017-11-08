@@ -3,7 +3,7 @@ import os
 import sys
 
 USE_SPINNER = True
-SPINNER = Spinner()
+SPINNER = Spinner(mem_intervall=1000)
 
 sys.stderr.write('INFO :: Loading precalculated md5 sums from disk.\n')
 _s = Spinner(update_intervall=1)
