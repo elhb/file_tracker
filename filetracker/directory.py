@@ -82,7 +82,6 @@ class Directory():
                     yield _dir
                     returned[_dir] = True
 
-
      def printtree(
           self,
           nosize=False,
@@ -251,49 +250,52 @@ def compare_files_in_directories(reference_dir,subject_dir,verbose=True,recurion
      
      recurion_depth_offset=''.join([' ' for i in xrange(4*recurion_depth)])+str(recurion_depth)+'-----'
      if verbose:
-          sys.stderr.write('INFO ::         Comparing files.\n')
-          sys.stderr.write('INFO ::         referencedir={}\n'.format(reference_dir.name))
-          sys.stderr.write('INFO ::         subjectdir={}\n'.format(subject_dir.name))
+          sys.stderr.write('INFO :: {}Comparing files.\n'.format(recurion_depth_offset))
+          sys.stderr.write('INFO :: {}--Referencedir={}\n'.format(recurion_depth_offset,reference_dir.name))
+          sys.stderr.write('INFO :: {}--Subjectdir={}\n'.format(recurion_depth_offset,subject_dir.name))
      all_files_form_self_is_duplicated_in_other_dir = True
 
-     if len(reference_dir.files) != len(subject_dir.files): return False
-
-     for _file1 in reference_dir.files:
-
-          _file1_duplicated_in_other_dir = False
-          for _file2 in subject_dir.files:
-               if _file1 in _file2.duplicates and _file2 in _file1.duplicates:
-                    _file1_duplicated_in_other_dir = True
-                    break
-
-          if not _file1_duplicated_in_other_dir:
-               all_files_form_self_is_duplicated_in_other_dir = False
-               if verbose:sys.stderr.write('WARNING ::         file {} in reference is NOT present in subject.\n'.format(_file1.filename) )
-          else:
-               if verbose:sys.stderr.write('INFO ::         file {} in reference is also in subject {}.\n'.format(_file1.filename,_file2.filename) )
-
-     if all_files_form_self_is_duplicated_in_other_dir:
-          if verbose:sys.stderr.write( 'INFO ::         All files in reference are dupliacted in subject.\n')
-          return True
-     else:
-          if verbose:sys.stderr.write( 'WARNING ::         Some files in reference are NOT dupliacted in subject.\n')
+     if len(reference_dir.files) != len(subject_dir.files):
+          if verbose:sys.stderr.write( 'INFO :: {}--The number of files in the dirs do not match.\n'.format(recurion_depth_offset))
           return False
 
-def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=False,recurion_depth=0,files_sorted_by_md5sums={}):
+     reference_file_counter = 0
+     for refdir_file in reference_dir.files:
+          reference_file_counter += 1
 
-     recurion_depth_offset=''.join([' ' for i in xrange(4*recurion_depth)])+str(recurion_depth)+'-'
+          refdir_file_duplicated_in_subject_dir = False
+          subject_file_counter = 0
+          for subjdir_file in subject_dir.files:
+               subject_file_counter += 1
+               if refdir_file in subjdir_file.duplicates and subjdir_file in refdir_file.duplicates:
+                    refdir_file_duplicated_in_subject_dir = True
+                    break
+
+          if not refdir_file_duplicated_in_subject_dir:
+               all_files_form_self_is_duplicated_in_other_dir = False
+               if verbose:sys.stderr.write('INFO :: {}--File {} in reference is NOT present in subject.\n'.format(recurion_depth_offset,refdir_file.filename) )
+          elif verbose:sys.stderr.write('INFO :: {}--File {} in reference is also in subject {}.\n'.format(recurion_depth_offset,refdir_file.filename,subjdir_file.filename) )
+
+     if all_files_form_self_is_duplicated_in_other_dir:
+          if verbose:sys.stderr.write( 'INFO :: {}--All files in reference are dupliacted in subject.\n'.format(recurion_depth_offset))
+          return True
+     else:
+          if verbose:sys.stderr.write( 'INFO :: {}--Some files in reference are NOT dupliacted in subject.\n'.format(recurion_depth_offset))
+          return False
+
+def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=True,recurion_depth=0,files_sorted_by_md5sums={}):
+
+     recurion_depth_offset=''.join([' ' for i in xrange(4*recurion_depth)])+str(recurion_depth)+'-----'
      if verbose:
-          sys.stderr.write('INFO ::         Comparing sub directories.\n')
-          sys.stderr.write('INFO ::         referencedir={}\n'.format(reference_dir.name))
-          sys.stderr.write('INFO ::         subjectdir={}\n'.format(subject_dir.name))
+          sys.stderr.write('INFO :: {}Comparing sub directories.\n'.format(recurion_depth_offset))
+          sys.stderr.write('INFO :: {}--Referencedir={}\n'.format(recurion_depth_offset,reference_dir.name))
+          sys.stderr.write('INFO :: {}--Subjectdir={}\n'.format(recurion_depth_offset,subject_dir.name))
 
      if len(reference_dir.dirs) == len(subject_dir.dirs):
           if len(reference_dir.dirs) == 0:
-                    if verbose: sys.stderr.write( 'INFO ::         All sub directories in reference are dupliacted in subject and vice versa (because there are none).\n' )
+                    if verbose: sys.stderr.write( 'INFO :: {}--All sub directories in reference are dupliacted in subject and vice versa (because there are none).\n'.format(recurion_depth_offset) )
                     return True
           else:
-               # this is probably a more efficient child parent check than in Directory.find_duplicates should change it and make one function for this type of check
-               #if subject_dir.name.startswith(reference_dir.name) or reference_dir.name.startswith(subject_dir.name):
                if are_related(subject_dir,reference_dir):
                     sys.stderr.write( 'INFO :: {}Directories are NOT duplicates (child of parent).\n'.format(recurion_depth_offset) )
                     return False
@@ -303,7 +305,7 @@ def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=False,recur
                          sys.stderr.write( 'WARNING :: one dir in comparison is a child of a dir in the comparison.\n' )
                          continue
                     if not directory.dup_checked:
-                         sys.stderr.write( 'INFO ::         Need to check child of potential duplicate first ...\n' )
+                         sys.stderr.write( 'INFO :: {}Need to check child of potential duplicate first ...\n'.format(recurion_depth_offset) )
                          directory.find_duplicates(recurion_depth=recurion_depth+1,files_sorted_by_md5sums=files_sorted_by_md5sums)
 
                all_subdirs_form_self_is_duplicated_in_other_dir = True
@@ -317,16 +319,16 @@ def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=False,recur
 
                     if not _subdir1_duplicated_in_other_dir:
                          all_subdirs_form_self_is_duplicated_in_other_dir = False
-                         if verbose:sys.stderr.write('WARNING ::         subdir {} in reference is not present in subject.\n'.format(_subdir1.name) )
+                         if verbose:sys.stderr.write('INFO :: {}--subdir {} in reference is not present in subject.\n'.format(recurion_depth_offset,os.path.basename(_subdir1.name.rstrip('/'))) )
                     else:
-                         if verbose:sys.stderr.write('INFO ::         subdir {} in reference is also in subject {}.\n'.format(_subdir1.name,_subdir2.name) )
+                         if verbose:sys.stderr.write('INFO :: {}--subdir {} in reference is also in subject {}.\n'.format(recurion_depth_offset,os.path.basename(_subdir1.name.rstrip('/')),os.path.basename(_subdir2.name.rstrip('/'))) )
 
                if all_subdirs_form_self_is_duplicated_in_other_dir:
-                    if verbose:sys.stderr.write( 'INFO ::         All subdirs in reference are dupliacted in subject.\n')
+                    if verbose:sys.stderr.write( 'INFO :: {}--All subdirs in reference are dupliacted in subject.\n'.format(recurion_depth_offset))
                     return True
                else:
-                    if verbose:sys.stderr.write( 'WARNING ::         Some subdirs in reference are NOT dupliacted in subject.\n')
+                    if verbose:sys.stderr.write( 'INFO :: {}--Some subdirs in reference are NOT dupliacted in subject.\n'.format(recurion_depth_offset))
                     return False
      else:
-          if verbose: sys.stderr.write( 'WARNING ::         The number of sub directories in refernce do NOT match the number in subject.\n')
+          if verbose: sys.stderr.write( 'INFO :: {}--The number of sub directories in refernce do NOT match the number in subject.\n'.format(recurion_depth_offset))
           return False
