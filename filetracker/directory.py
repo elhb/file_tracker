@@ -181,7 +181,7 @@ class Directory():
                pass#sys.stderr.write( 'INFO :: All files in directory {0} are dupliacted in dir {1} and vice versa.\n'.format(self,directory) )
           else: return False
 
-          if compare_subdirs_in_directories(self,directory,recurion_depth=recurion_depth,files_sorted_by_md5sums=files_sorted_by_md5sums) and compare_subdirs_in_directories(directory,self,recurion_depth=recurion_depth,files_sorted_by_md5sums=files_sorted_by_md5sums):
+          if compare_subdirs_in_directories(self,directory,recurion_depth=recurion_depth,files_sorted_by_md5sums=files_sorted_by_md5sums):
                #sys.stderr.write( 'INFO :: All subdirs in directory {0} are dupliacted in dir {1} and vice versa.\n'.format(self,directory) )
                return True
           else: return False
@@ -246,7 +246,7 @@ def are_related(dir_1,dir_2):
      if dir_1.name.startswith(dir_2.name) or dir_2.name.startswith(dir_1.name): return True
      else: return False
 
-def compare_files_in_directories(reference_dir,subject_dir,verbose=True,recurion_depth=0):
+def compare_files_in_directories(reference_dir,subject_dir,verbose=False,recurion_depth=0):
      
      recurion_depth_offset=''.join([' ' for i in xrange(4*recurion_depth)])+str(recurion_depth)+'-----'
      if verbose:
@@ -305,44 +305,58 @@ def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=True,recuri
           sys.stderr.write('INFO :: {}--Referencedir={}\n'.format(recurion_depth_offset,reference_dir.name))
           sys.stderr.write('INFO :: {}--Subjectdir={}\n'.format(recurion_depth_offset,subject_dir.name))
 
-     if len(reference_dir.dirs) == len(subject_dir.dirs):
-          if len(reference_dir.dirs) == 0:
-                    if verbose: sys.stderr.write( 'INFO :: {}--All sub directories in reference are dupliacted in subject and vice versa (because there are none).\n'.format(recurion_depth_offset) )
-                    return True
-          else:
-               if are_related(subject_dir,reference_dir):
-                    sys.stderr.write( 'INFO :: {}Directories are NOT duplicates (child of parent).\n'.format(recurion_depth_offset) )
-                    return False
-
-               for directory in reference_dir.dirs+subject_dir.dirs:
-                    if directory in [reference_dir, subject_dir]:
-                         sys.stderr.write( 'WARNING :: one dir in comparison is a child of a dir in the comparison.\n' )
-                         continue
-                    if not directory.dup_checked:
-                         sys.stderr.write( 'INFO :: {}Need to check child of potential duplicate first ...\n'.format(recurion_depth_offset) )
-                         directory.find_duplicates(recurion_depth=recurion_depth+1,files_sorted_by_md5sums=files_sorted_by_md5sums)
-
-               all_subdirs_form_self_is_duplicated_in_other_dir = True
-               for _subdir1 in reference_dir.dirs:
-
-                    _subdir1_duplicated_in_other_dir = False
-                    for _subdir2 in subject_dir.dirs:
-                         if _subdir1 in _subdir2.duplicates and _subdir2 in _subdir1.duplicates:
-                              _subdir1_duplicated_in_other_dir = True
-                              break
-
-                    if not _subdir1_duplicated_in_other_dir:
-                         all_subdirs_form_self_is_duplicated_in_other_dir = False
-                         if verbose:sys.stderr.write('INFO :: {}--subdir {} in reference is not present in subject.\n'.format(recurion_depth_offset,os.path.basename(_subdir1.name.rstrip('/'))) )
-                    else:
-                         if verbose:sys.stderr.write('INFO :: {}--subdir {} in reference is also in subject {}.\n'.format(recurion_depth_offset,os.path.basename(_subdir1.name.rstrip('/')),os.path.basename(_subdir2.name.rstrip('/'))) )
-
-               if all_subdirs_form_self_is_duplicated_in_other_dir:
-                    if verbose:sys.stderr.write( 'INFO :: {}--All subdirs in reference are dupliacted in subject.\n'.format(recurion_depth_offset))
-                    return True
-               else:
-                    if verbose:sys.stderr.write( 'INFO :: {}--Some subdirs in reference are NOT dupliacted in subject.\n'.format(recurion_depth_offset))
-                    return False
-     else:
+     if len(reference_dir.dirs) != len(subject_dir.dirs):
           if verbose: sys.stderr.write( 'INFO :: {}--The number of sub directories in refernce do NOT match the number in subject.\n'.format(recurion_depth_offset))
+          return False
+
+     if len(reference_dir.dirs) == 0:
+               if verbose: sys.stderr.write( 'INFO :: {}--All subdirectories present in reference are dupliacted in subject and vice versa (because there are none).\n'.format(recurion_depth_offset) )
+               return True
+
+     if are_related(subject_dir,reference_dir):
+          sys.stderr.write( 'INFO :: {}Directories are NOT duplicates (child of parent).\n'.format(recurion_depth_offset) )
+          return False
+
+     for directory in reference_dir.dirs+subject_dir.dirs:
+          if not directory.dup_checked:
+               sys.stderr.write( 'INFO :: {}Need to check child of potential duplicate first  ... going to child (from subdir comparison)\n'.format(recurion_depth_offset) )
+               directory.find_duplicates(recurion_depth=recurion_depth+1,files_sorted_by_md5sums=files_sorted_by_md5sums)
+
+     subject_dir_subdir_duplicates = {}
+     for directory in subject_dir.dirs:
+          for subdir_duplicate in directory.duplicates:
+               subject_dir_subdir_duplicates[subdir_duplicate]=None
+     alldirectorys_form_refdir_is_duplicated_in_subjdir = True
+     referencedirectory_counter = 0
+     for refdirdirectory in reference_dir.dirs:
+          referencedirectory_counter += 1
+          if refdirdirectory not in subject_dir_subdir_duplicates:
+               if verbose:sys.stderr.write('INFO :: {}--subdir {} in reference is NOT present in subject.\n'.format(recurion_depth_offset,os.path.basename(refdirdirectory.name.rstrip('/'))) )
+               alldirectorys_form_refdir_is_duplicated_in_subjdir = False
+               if verbose:sys.stderr.write( 'INFO :: {}--Some subdirs in reference are NOT dupliacted in subject.\n'.format(recurion_depth_offset))
+               return False
+               break
+          elif verbose:sys.stderr.write('INFO :: {}--subdir {} in reference is also in subject.\n'.format(recurion_depth_offset,os.path.basename(refdirdirectory.name.rstrip('/'))) )
+
+     reference_dir_subdir_duplicates = {}
+     for directory in reference_dir.dirs:
+          for subdir_duplicate in directory.duplicates:
+               reference_dir_subdir_duplicates[subdir_duplicate]=None
+     alldirectorys_form_subjdir_is_duplicated_in_refdir = True
+     subjectdirectory_counter = 0
+     for subjdirdirectory in subject_dir.dirs:
+          subjectdirectory_counter += 1
+          if subjdirdirectory not in reference_dir_subdir_duplicates:
+               if verbose:sys.stderr.write('INFO :: {}--subdir {} in subjet is NOT present in reference.\n'.format(recurion_depth_offset,os.path.basename(subjdirdirectory.name.rstrip('/'))) )
+               alldirectorys_form_subjdir_is_duplicated_in_refdir = False
+               if verbose:sys.stderr.write( 'INFO :: {}--Some subdirs in subject are NOT dupliacted in reference.\n'.format(recurion_depth_offset))
+               return False
+               break
+          elif verbose:sys.stderr.write('INFO :: {}--subdir {} in subject is also in reference.\n'.format(recurion_depth_offset,os.path.basename(subjdirdirectory.name.rstrip('/'))) )
+
+     if alldirectorys_form_refdir_is_duplicated_in_subjdir and alldirectorys_form_subjdir_is_duplicated_in_refdir:
+          if verbose:sys.stderr.write( 'INFO :: {}--All subdirs in reference are dupliacted in subject and vice versa.\n'.format(recurion_depth_offset))
+          return True
+     else:
+          if verbose:sys.stderr.write( 'INFO :: {}--Some subdirs in reference are NOT dupliacted in subject.\n'.format(recurion_depth_offset))
           return False
