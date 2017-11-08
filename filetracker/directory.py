@@ -5,10 +5,14 @@ from filetracker.constants import *
 from filetracker.config import *
 from filetracker.mediafile import MediaFile
 from filetracker.misc_functions import *
+import psutil
 
 class Directory():
 
      def __init__(self, path, parent=None,verbose=False,followlinks=False):
+          if psutil.virtual_memory().percent > 99:
+               sys.stderr.write( 'ERROR :: out of memory (only 1% memory left).\n')
+               sys.exit()
           self.verbose = verbose
           assert os.path.isdir(path)
           self.name = os.path.abspath(path)
@@ -150,7 +154,7 @@ class Directory():
           for i in range(len(self.files)): print '{0}. {1}'.format(i,self.files[i])
 
      def add_to_dup_tracker(self, files_sorted_by_md5sums, _spinner=None):
-          if self.verbose and not _spinner: _spinner = Spinner(update_intervall=1)
+          if self.verbose and not _spinner: _spinner = Spinner(update_intervall=1,mem_intervall=100)
           
           for f in self.files:
                #if self.verbose: _spinner.next()
