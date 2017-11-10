@@ -1,15 +1,12 @@
-def offset_name(name,level):
-    #offset = ' '.join('' for i in xrange(level))
-    _parts = name.split('/')
-    start = '|' if level != 0 else ''
-    spacer = '/' if level != 0 else ''
-    spacer2 = '`- ' if level != 0 else ''
-    #return ''.join([ '|'+''.join([' ' for i in range(len(part))])    for part in _parts[1:max(0,level-1)] ]) + \
-    return name
-    return ''.join([ '|'+''.join([' ' for i in range(2)])    for part in _parts[1:max(0,level-1)] ]) + \
-    spacer2 + \
-    spacer+ '/'.join(_parts[level:])
-    #''.join([' ' for i in range(len(_parts[max(0,level-1)]))]) +
+def offset_name(file_or_dir):
+
+    if 'fullpath' in file_or_dir.__dict__:
+        name = file_or_dir.fullpath
+    else:
+        name = file_or_dir.name
+    
+    if not file_or_dir.parent_dir: return name
+    return name.replace(file_or_dir.parent_dir.name,''.join('-' for i in xrange(len(file_or_dir.parent_dir.name))))
 
 def bytes2humanreadable(b):
     kb =  b/1024.0
