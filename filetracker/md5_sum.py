@@ -12,5 +12,5 @@ def md5(fname):
                 hash_md5.update(chunk)
         return hash_md5.hexdigest()
     except:
-        sys.stderr.write('WARNING :: Cannot get md5SUm of file {}, this it will probably mess upp the duplication tracking of the affected path.\n'.format(fname))
+        sys.stderr.write('MAJOR-WARNING :: Cannot get md5SUm of file {}, this it will probably mess upp the duplication tracking of the affected path.\n'.format(fname))
         return None#''.join([random.choice('1234567890ASDFGHJKLZZXCVBNMQWERTYUIOPqwertyuiopasdfghjklzxcvbnm') for i in xrange(20)])
