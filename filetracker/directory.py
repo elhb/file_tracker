@@ -7,6 +7,8 @@ from filetracker.mediafile import MediaFile
 from filetracker.misc_functions import *
 import psutil
 
+RECURSION_DEPTH_LIMIT = 30
+
 class Directory():
 
      def __init__(self, path, parent=None,verbose=False,followlinks=False):
@@ -116,11 +118,12 @@ class Directory():
                rdups_percentage = round(100*float(rdups_count)/self.rfiles_count,2) if self.rfiles_count else 0.0
                if rdups_percentage < min_dups:pass
                else:
-                    out_str = '{0}{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}'.format( human_size, size_unit, self.rfiles_count, self.rdirs_count , rdups_count, rdups_percentage, offset_name(self.name,level),' '.join(d.name for d in self.duplicates) )
+                    out_str = '{0}{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}'.format( human_size, size_unit, self.rfiles_count, self.rdirs_count , rdups_count, rdups_percentage, self.name,' '.join(d.name for d in self.duplicates) )
                     print out_str
                     if self.duplicates:
                          if not sugessted_actions or self not in sugessted_actions:
-                              with open('actions.txt','a') as outfile: outfile.write('# {}\nrm -vr "{}"\n'.format(out_str,self.name))
+                              with open('actions.txt','a') as outfile:
+                                   outfile.write('# {0}\necho -e "Running cmd :: rm -vr \"{1}\""\nrm -vr "{1}"\n'.format(out_str,self.name))
                          if not sugessted_actions: sugessted_actions = dict()
                          sugessted_actions[self] = True
                          for duplicate in self.duplicates: sugessted_actions[duplicate] = True
@@ -145,7 +148,7 @@ class Directory():
                for media_file in self.files:
                     if nosize == False and media_file.size < min_size: pass
                     else:
-                         print '{0}{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}'.format( media_file.human_size, media_file.size_unit, 1, 0 ,len(media_file.duplicates),'-', offset_name(media_file.fullpath,level+1), ' '.join(f.fullpath for f in media_file.duplicates) )
+                         print '{0}{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}'.format( media_file.human_size, media_file.size_unit, 1, 0 ,len(media_file.duplicates),'-', media_file.fullpath, ' '.join(f.fullpath for f in media_file.duplicates) )
 
      @property
      def printdirs(self,):
@@ -190,8 +193,15 @@ class Directory():
           else: return False
 
      def find_duplicates(self,recurion_depth=0,files_sorted_by_md5sums={}):
-
+          
           recurion_depth_offset=''.join([' ' for i in xrange(4*recurion_depth)])+str(recurion_depth)+'-'
+          if recurion_depth >= RECURSION_DEPTH_LIMIT:
+               sys.stderr.write( 'WARNING :: ########## Reached maximum recursion depth ##########\n' )
+          #      for child in self.rdirs:
+          #           sys.stderr.write( 'INFO :: {}Trying to start from leaf.\n'.format(recurion_depth_offset))
+          #           sys.stderr.write( 'INFO :: {}Need to check child of potential duplicate first ... going to child\n'.format(recurion_depth_offset))
+          #           child.find_duplicates(recurion_depth=recurion_depth+1,files_sorted_by_md5sums=files_sorted_by_md5sums)
+
           sys.stderr.write( 'INFO :: {}Directory {} Cheking children.\n'.format(recurion_depth_offset,self.name) )
           for directory in self.dirs:
                if not directory.dup_checked:
@@ -202,22 +212,23 @@ class Directory():
           sys.stderr.write( 'INFO :: {}Directory {} searching for potential duplicates.\n'.format(recurion_depth_offset,self.name) )
           potential_duplicates = {}
           for _file in self.files:
-               for duplicate in _file.duplicates:
-                    if duplicate.parent_dir.name != self.name:
-                         potential_duplicates[duplicate.parent_dir] = None
-          # NEED FIX #################################################################################
-          # CANNOT FIND POTENTIAL DUPLICATE OF A FOLDER WITH ONLY SUBDIRS NO FILES.                  #
-          if not self.files:                                                                         #
+               if _file.md5_sum == 'd41d8cd98f00b204e9800998ecf8427e':
+                    sys.stderr.write( 'INFO :: {}--Skipping file {} duplicates while searching for potential duplicates, the file is empty.\n'.format(recurion_depth_offset,_file.filename) )
+                    continue #do not use empty files to find potential duplicates
+               else:
+                    for duplicate in _file.duplicates:
+                         if duplicate.parent_dir.name != self.name:
+                              potential_duplicates[duplicate.parent_dir] = None
+          if not self.files:
                key='{}__{}'.format(self.get_size(),len(list(self.rfiles))+len(list(self.rdirs)) )
-               try:                                                                                  #
-                    _tmp = files_sorted_by_md5sums['NOFILES'][key]                       #
-               except KeyError:                                                                      #
+               try:
+                    _tmp = files_sorted_by_md5sums['NOFILES'][key]
+               except KeyError:
                     sys.stderr.write('WARNING :: {} dir size not in NOFILES ({}) the key {} is not in dict.\n'.format(recurion_depth_offset,self.name,key))
                     _tmp = []
-               for potential_duplicate in _tmp:                                                      #
-                    if potential_duplicate.name != self.name:                                        #
-                         potential_duplicates[potential_duplicate] = None                            #
-          ############################################################################################
+               for potential_duplicate in _tmp:
+                    if potential_duplicate.name != self.name:
+                         potential_duplicates[potential_duplicate] = None
 
           sys.stderr.write( 'INFO :: {}Found {} potential duplicates validating.\n'.format(recurion_depth_offset,len(potential_duplicates)) )
           _tmp_counter = 0
@@ -259,6 +270,10 @@ def compare_files_in_directories(reference_dir,subject_dir,verbose=False,recurio
 
      if len(reference_dir.files) != len(subject_dir.files):
           if verbose:sys.stderr.write( 'INFO :: {}--The number of files in the dirs do not match.\n'.format(recurion_depth_offset))
+          return False
+
+     if reference_dir.rfiles_count != subject_dir.rfiles_count:
+          if verbose: sys.stderr.write( 'INFO :: {}--The number of files (recursive) in reference do NOT match the number in subject.\n'.format(recurion_depth_offset))
           return False
 
      subject_dir_file_duplicates = {}
@@ -309,7 +324,11 @@ def compare_subdirs_in_directories(reference_dir,subject_dir,verbose=True,recuri
           sys.stderr.write('INFO :: {}--Subjectdir={}\n'.format(recurion_depth_offset,subject_dir.name))
 
      if len(reference_dir.dirs) != len(subject_dir.dirs):
-          if verbose: sys.stderr.write( 'INFO :: {}--The number of sub directories in refernce do NOT match the number in subject.\n'.format(recurion_depth_offset))
+          if verbose: sys.stderr.write( 'INFO :: {}--The number of sub directories in reference do NOT match the number in subject.\n'.format(recurion_depth_offset))
+          return False
+
+     if reference_dir.rdirs_count != subject_dir.rdirs_count:
+          if verbose: sys.stderr.write( 'INFO :: {}--The number of subdirs (recursive) in reference do NOT match the number in subject.\n'.format(recurion_depth_offset))
           return False
 
      if len(reference_dir.dirs) == 0:
